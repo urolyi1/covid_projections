@@ -1,4 +1,9 @@
 import requests
+from datetime import datetime
+import os
+import io
+import zipfile
+
 name_to_id = {'Alabama': 523, 'Alaska': 524, 'Arizona': 525, 'Arkansas': 526, 'California': 527, 'Colorado': 528,\
               'Connecticut': 529, 'Delaware': 530, 'District of Columbia': 531, 'Florida': 532, 'Georgia': 533,\
               'Hawaii': 534, 'Idaho': 535, 'Illinois': 536, 'Indiana': 537, 'Iowa': 538, 'Kansas': 539, 'Kentucky': 540,\
@@ -16,14 +21,22 @@ def total_deaths(dicts, keyword):
 
 low = mean = up = {}
 
+# Save full csv to raw_data
+r = requests.get('https://ihmecovid19storage.blob.core.windows.net/latest/ihme-covid19.zip', stream=True)
+z = zipfile.ZipFile(io.BytesIO(r.content))
+z.extract(z.namelist()[1], path='raw_data')
+
+
+# For each state
 for name,identity in name_to_id.items():
+    # Get request and store total low, mean, high death projections
     state = requests.get(f"https://covid19.healthdata.org/api/data/hospitalization?location={identity}",\
                      headers={'User-Agent': 'Mozilla/5.0'}).json()
     low[name] = total_deaths(state,"lower")
     mean[name] = total_deaths(state,"mean")
-    up[name] = total_deaths(state,"upper") 
+    up[name] = total_deaths(state,"upper")
 
-
+# Print low, mean, upper numbers for all states
 for diction in [low,mean,up]:
     for name in sorted(diction):
         print(diction[name])
